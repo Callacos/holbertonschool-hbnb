@@ -8,29 +8,32 @@
 </head>
 <body>
     <header>
-		<img src="images/logo.png" alt="Logo" id="logo">
+        <img src="images/logo.png" alt="Logo" id="logo">
         <nav>
             <a href="login.html" id="login-link">Login</a>
         </nav>
     </header>
+
     <main>
         <section id="filter">
-			<h2>Filter Places</h2>
+            <h2>Filter Places</h2>
             <label for="price-filter">Max Price:</label>
             <select id="price-filter">
-                <!-- Options will be populated dynamically -->
+                <option value="All">All</option>
+                <option value="10">10€</option>
+                <option value="50">50€</option>
+                <option value="100">100€</option>
             </select>
         </section>
+
         <section id="places-list">
-            <div class="place-card">
-				<h2>Nom du lieu</h2>
-				<p>Prix : 100€/nuit</p>
-				<button class="details-button">Voir détails</button>
-			  </div>
+            <!-- Les lieux seront insérés ici dynamiquement -->
         </section>
     </main>
+
     <script src="scripts.js"></script>
-	<footer>
+
+    <footer>
         <p>&copy; 2023 Your Company. All rights reserved.</p>
         <p><a href="privacy_policy.html">Privacy Policy</a></p>
         <p><a href="terms_of_service.html">Terms of Service</a></p>
