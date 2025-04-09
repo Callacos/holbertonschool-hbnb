@@ -37,7 +37,11 @@ def create_app(config_class="config.DevelopmentConfig"):
               })
     
     CORS(app, resources={r"/api/*": {"origins": "*", "supports_credentials": True}})
-              
+            
+    @app.route('/api/v1/places', methods=['OPTIONS'])
+    def preflight():
+        return '', 200
+    
     # Initialiser les extensions
     db.init_app(app)
     bcrypt.init_app(app)
