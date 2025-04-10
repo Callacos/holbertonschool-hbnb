@@ -143,7 +143,10 @@ class PlaceResource(Resource):
     @api.response(404, 'Place not found')
     def get(self, place_id):
         """Get place details by ID"""
+        print("jffvjhbjdfhjdjv")
         place = facade.get_place(place_id)
+        print("place :")
+        print(place)
         if place:
             owner = facade.get_user(place.owner_id)
             return {

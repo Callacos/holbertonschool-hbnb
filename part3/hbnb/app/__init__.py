@@ -1,8 +1,9 @@
-from flask import Flask
+from flask import Flask, request
 from flask_restx import Api
 from flask_bcrypt import Bcrypt
 from flask_jwt_extended import JWTManager
-from flask_sqlalchemy import SQLAlchemy 
+from flask_sqlalchemy import SQLAlchemy
+from flask_cors import CORS
 from app.extensions import db, bcrypt, jwt
 
 jwt = JWTManager()
@@ -17,7 +18,22 @@ from app.api.v1.protected import api as protected_ns
 def create_app(config_class="config.DevelopmentConfig"):
     # Créer l'objet Flask d'abord
     app = Flask(__name__)
+
+    CORS(app,
+     resources={r"/api/*": {"origins": "http://127.0.0.1:5500"}},
+     supports_credentials=True)
     
+    @app.route('/api/v1/auth/login', methods=['OPTIONS'])
+    def handle_login_options():
+        return '', 200
+
+    @app.route('/api/v1/places/<place_id>/reviews', methods=['OPTIONS'])
+    def handle_place_options():
+        return '', 200
+    
+    @app.route('/api/v1/reviews', methods=['OPTIONS'])
+    def handle_add_review():
+        return '', 200
     # Puis configurer l'application
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///hbnb.db'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -50,5 +66,29 @@ def create_app(config_class="config.DevelopmentConfig"):
     # Créer les tables
     with app.app_context():
         db.create_all()
+
+    # Ajouter un gestionnaire spécial pour les requêtes OPTIONS
+    @app.route('/api/v1/<path:path>', methods=['OPTIONS'])
+    def handle_options(path):
+        # Répondre directement aux requêtes OPTIONS avec un statut 200
+        response = app.make_default_options_response()
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,Accept')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+        response.headers.add('Access-Control-Allow-Credentials', 'true')
+        return response
+    
+    
+     # Middleware pour intercepter et répondre aux requêtes OPTIONS
+    @app.before_request
+    def handle_preflight():
+        if request.method == "OPTIONS":
+            # Retourner une réponse vide avec les en-têtes CORS appropriés
+            response = app.make_default_options_response()
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,Accept')
+            response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+            response.headers.add('Access-Control-Allow-Credentials', 'true')
+            return response
         
     return app

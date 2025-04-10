@@ -77,6 +77,7 @@ class SQLAlchemyRepository(Repository):
         """
         Get an object from the database by its ID.
         """
+        print(obj_id)
         return self.model.query.get(obj_id)
 
     def get_all(self):
