@@ -88,7 +88,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (placeDetailsSection) {
         const placeId = getPlaceIdFromURL();
         if (placeId) {
-            console.log("hello")
             fetchPlaceDetails(token, placeId);
         } else {
             console.error('ID du lieu manquant dans l\'URL');
@@ -189,10 +188,6 @@ async function fetchPlaceDetails(token, placeId) {
     }
 
     try {
-        // Afficher des informations de débogage
-        console.log(`Fetching place details for ID: ${placeId}`);
-        console.log(`Using token: ${token ? 'Yes (token exists)' : 'No (token missing)'}`);
-
         const response = await fetch(`http://127.0.0.1:5000/api/v1/places/${placeId}`, {
             method: 'GET',
             headers: token ? {
@@ -200,12 +195,13 @@ async function fetchPlaceDetails(token, placeId) {
             } : {}
         });
 
-        console.log(`API response status: ${response.status}`);
-
         if (response.ok) {
             const place = await response.json();
             displayPlaceDetails(place);
-            await fetchReviews(token)
+            
+            // Properly await the reviews fetch and pass the result to displayReviews
+            const reviews = await fetchReviews(token);
+            displayReviews(reviews);
         } else {
             console.error(`Erreur lors de la récupération des détails: ${response.status}, ${response.statusText}`);
             
@@ -225,28 +221,19 @@ async function fetchPlaceDetails(token, placeId) {
 }
 
 // Fonction pour afficher les détails d'un lieu
-function displayPlaceDetails(place) {
+async function displayPlaceDetails(place) {
     const container = document.getElementById('place-details');
-    console.log("hello")
+
+
     if (!container) return;
-    
-    console.log('Displaying place details:', place);
 
     // Gérer les propriétés potentiellement manquantes
     const amenities = place.amenities ? 
         (Array.isArray(place.amenities) ? place.amenities.join(', ') : place.amenities) : 
         'Aucun';
-    
-    const reviews = place.reviews ? 
-        (Array.isArray(place.reviews) && place.reviews.length > 0 ? 
-            place.reviews.map(review => `
-                <div class="review-card">
-                    <p>"${review.comment || ''}"</p>
-                    <small>Par ${review.user || 'un utilisateur'} - Note : ${review.rating || 0}⭐</small>
-                </div>
-            `).join('') : 
-            '<p>Aucun avis pour le moment</p>') : 
-        '<p>Aucun avis pour le moment</p>';
+
+
+    const reviews = await fetchReviews(getCookie('token'));
 
     const html = `
         <div class="place-info">
@@ -257,12 +244,26 @@ function displayPlaceDetails(place) {
             <p>Équipements : ${amenities}</p>
         </div>
         <h3>Avis</h3>
-        <div class="reviews">
+        <div id="reviews">
             ${reviews}
         </div>
     `;
 
     container.innerHTML = html;
+
+    const reviewsContainer = document.getElementById('reviews');
+
+    const reviewsHTML = reviews.map(review => `
+                <div class="review-card">
+                    <p>"${review.text || ''}"</p>
+                    <small>Par ${review.user || 'un utilisateur'} - Note : ${review.rating || 0}⭐</small>
+                </div>
+            `);
+    reviewsContainer.innerHTML = reviewsHTML.join('');
+
+    
+
+
     
     // Mettre à jour le lien d'ajout d'avis
     const addReviewLink = document.querySelector('#add-review a');
@@ -274,8 +275,6 @@ function displayPlaceDetails(place) {
 // Récupérer l'ID depuis l'URL
 const urlParams = new URLSearchParams(window.location.search);
 const placeId = urlParams.get('id'); // Extrait la valeur de 'id'
-console.log(placeId); // Vérifie si l'ID a bien été extrait
-
 
 function getPlaceIdFromURL() {
     const params = new URLSearchParams(window.location.search);
@@ -297,9 +296,10 @@ function getCookie(name) {
 async function fetchReviews(token) {
     const placeId = getPlaceIdFromURL();
     if (!placeId) {
-        displayError('No place ID specified');
-        return;
+        console.error('No place ID specified');
+        return [];
     }
+    
     try {
         const headers = {
             'Content-Type': 'application/json'
@@ -309,21 +309,27 @@ async function fetchReviews(token) {
             headers['Authorization'] = `Bearer ${token}`;
         }
         
-        const response = await fetch(`http://localhost:5000/api/v1/places/${placeId}/reviews`, {
+        // Use the correct endpoint to get reviews for a specific place
+        const response = await fetch(`http://127.0.0.1:5000/api/v1/places/${placeId}/reviews`, {
             method: 'GET',
             headers: headers,
         });
         
+        
         if (response.ok) {
             const reviews = await response.json();
-            displayReviews(reviews);
+            console.log('Fetched reviews:', reviews);
+            return reviews; // Return the reviews data
         } else {
-            displayError('Failed to fetch reviews: ' + response.statusText);
+            console.error('Failed to fetch reviews:', response.statusText);
+            return [];
         }
     } catch (error) {
-        console.log('Error fetching reviews: ' + error.message);
+        console.error('Error fetching reviews:', error.message);
+        return [];
     }
 }
+
 function displayReviews(reviews) {
     const reviewsSection = document.getElementById('reviews');
     if (!reviewsSection) return;
@@ -341,12 +347,13 @@ function displayReviews(reviews) {
         reviews.forEach(review => {
             const reviewCard = document.createElement('div');
             reviewCard.className = 'review-card';
+            
             reviewCard.innerHTML = `
                 <div class="review-header">
                     <img src="images/ane.avif" alt="Reviewer" class="reviewer-img">
                     <div class="reviewer-info">
-                        <h3 class="reviewer-name">${review.user.first_name}</h3>
-                        <p class="review-date">${review.created_at}</p>
+                        <h3 class="reviewer-name">User ID: ${review.user_id}</h3>
+                        <p class="review-date">${review.created_at || 'No date'}</p>
                     </div>
                 </div>
                 <div class="review-content">
@@ -429,7 +436,8 @@ async function submitReview(token, placeId, text, rating) {
             alert('Review submitted successfully!');
         } else {
             const errorData = await response.json();
-            throw new Error(errorData.error || 'Failed to submit review: ' + response.statusText);
+            //throw new Error(errorData.error || 'Failed to submit review: ' + response.statusText);
+            throw new Error(response.message)
         }
     } catch (error) {
         throw new Error('Error submitting review: ' + error.message);
