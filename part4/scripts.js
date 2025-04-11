@@ -1,7 +1,7 @@
 // Un seul écouteur DOMContentLoaded
 function setupReviewForm() {
     const form = document.getElementById('review-form');
-    if (!form) console.log("yo");
+    if (!form);
 
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -16,7 +16,6 @@ function setupReviewForm() {
 
         try {
         const response = await submitReview(getCookie('token'), placeId, reviewText, rating);
-        console.log("yayaya")
 
         if (response.ok) {
             alert("Avis ajouté avec succès !");
@@ -96,7 +95,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Configuration pour la page d'ajout de commentaire
     if (reviewForm) {
-        console.log("yoyoyo")
         setupReviewForm();
     }
 });
@@ -117,7 +115,7 @@ async function loginUser(email, password) {
         document.cookie = `token=${data.access_token}; path=/`;
         window.location.href = 'index.html';
     } else {
-        alert('Login failed: ' + response.statusText);
+        alert('Login failed: mot de passe ou email incorrect');
     }
 }
 
